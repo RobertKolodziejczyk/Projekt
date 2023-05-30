@@ -8,17 +8,18 @@ port = 1345
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 while True:
-    # Tries to connect to server, if it's not running it lets the user know
+    # Tries to connect to server, if it's not up it lets the user know
     try:
         client.connect((host, port))
         break
 
     except ConnectionRefusedError:
-        print("Server is not currently running... ")
+        print("Server is not currently up... ")
 
 # Variable to check if the game should be run or not
 game = False
 
+# Creates the game window
 app = Ursina(size=(1600, 900))
 
 enemies = []
@@ -27,7 +28,11 @@ colors = [color.green, color.red, color.blue, color.cyan, color.black]
 
 score = 0
 
+# Variable to check if the client is connected to the server
+is_connected = True
 
+
+# Tries to recieve high_scores from the server, if a connection error is met, it returns False
 def recieve_high_scores():
     try:
         high_score1 = client.recv(1024).decode("utf-8")
@@ -40,6 +45,8 @@ def recieve_high_scores():
         return text1, text2, text3
     except ConnectionError:
         print("You lost connection with the server")
+        print("You will now enter offline mode")
+        return False
 
 
 def write(initials, score):
@@ -47,17 +54,21 @@ def write(initials, score):
         client.send(bytes(initials, "utf-8"))
         client.send(bytes(str(score), "utf-8"))
     except ConnectionError:
-        print("You lost connection with the server")
+        pass
     texts = recieve_high_scores()
-    global text1
-    global text2
-    global text3
-    destroy(text1)
-    destroy(text2)
-    destroy(text3)
-    text1 = texts[0]
-    text2 = texts[1]
-    text3 = texts[2]
+    if texts:
+        global text1
+        global text2
+        global text3
+        destroy(text1)
+        destroy(text2)
+        destroy(text3)
+        text1 = texts[0]
+        text2 = texts[1]
+        text3 = texts[2]
+    else:
+        global is_connected
+        is_connected = False
 
 
 def on_mouse_click():
@@ -71,6 +82,7 @@ def on_mouse_click():
 
 def submit():
     global score
+    initials_prompt.disable()
     submit_button.disable()
     write(initials.text, score)
     initials.disable()
@@ -85,11 +97,11 @@ def playagain():
         highlight_color=color.clear,
         on_click=on_mouse_click,
     )
-    global text
-    destroy(text)
+    global score_text
+    destroy(score_text)
     global score
     score = 0
-    text = Text(score)
+    score_text = Text(score, position=(0, 0.5))
 
 
 class Circle(Entity):
@@ -137,12 +149,12 @@ def spawn():
 
 player = Player(0.1, (0, 0))
 button = Button(
-    text="Click to Start",
+    text="Avoid bigger dots eat smaller dots \n Click to Start",
     color=color.clear,
     highlight_color=color.clear,
     on_click=on_mouse_click,
 )
-text = Text(score)
+score_text = Text(score, position=(0, 0.5))
 
 initials = InputField(
     y=-0.12,
@@ -150,6 +162,8 @@ initials = InputField(
     character_limit=3,
     max_lines=1,
 )
+
+initials_prompt = Text(text="Enter your initials", position=(-0.15, 0))
 
 submit_button = Button(
     text="Submit",
@@ -159,18 +173,22 @@ submit_button = Button(
     on_click=submit,
 )
 initials.disable()
+initials_prompt.disable()
 submit_button.disable()
 
 texts = recieve_high_scores()
 
-text1 = texts[0]
-text2 = texts[1]
-text3 = texts[2]
+if texts:
+    text1 = texts[0]
+    text2 = texts[1]
+    text3 = texts[2]
+else:
+    is_connected = False
 
 
 def update():
     global score
-    global text
+    global score_text
     global game
     if game == True:
         spawn()
@@ -188,8 +206,8 @@ def update():
                 player.radius += 0.01
                 player.scale = player.radius
                 score += 1
-                destroy(text)
-                text = Text(score)
+                destroy(score_text)
+                score_text = Text(score, position=(0, 0.5))
                 break
             elif hit_info.hit and player.radius < enemy.radius:
                 game = False
@@ -199,10 +217,14 @@ def update():
                 destroy(enemy)
             enemies.clear()
 
-            global initials
-            global submit_button
-            initials.enable()
-            submit_button.enable()
+            if is_connected == True:
+                global initials
+                global submit_button
+                initials.enable()
+                submit_button.enable()
+                initials_prompt.enable()
+            else:
+                playagain()
 
 
 app.run()

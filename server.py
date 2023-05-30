@@ -12,13 +12,18 @@ server.listen()
 
 
 def high_score(client):
-    initials = client.recv(1024).decode("utf-8").upper()
-    score = client.recv(1024).decode("utf-8")
+    try:
+        initials = client.recv(1024).decode("utf-8").upper()
+        score = client.recv(1024).decode("utf-8")
+    except ConnectionAbortedError:
+        print("The client closed the connection")
+        return False
+
     if score:
         with open("high_scores.csv", "a", encoding="utf-8") as file:
             writer = csv.writer(file)
             writer.writerow([initials, score])
-    handle(client)
+    return True
 
 
 def send_high_score(client):
@@ -52,16 +57,29 @@ def send_high_score(client):
             else:
                 continue
 
-        client.send(bytes(highest_scores[0] + " " + str(highest_scores[1]), "utf-8"))
-        sleep(2)
-        client.send(bytes(highest_scores[2] + " " + str(highest_scores[3]), "utf-8"))
-        sleep(2)
-        client.send(bytes(highest_scores[4] + " " + str(highest_scores[5]), "utf-8"))
+        try:
+            client.send(
+                bytes(highest_scores[0] + " " + str(highest_scores[1]), "utf-8")
+            )
+            sleep(2)
+            client.send(
+                bytes(highest_scores[2] + " " + str(highest_scores[3]), "utf-8")
+            )
+            sleep(2)
+            client.send(
+                bytes(highest_scores[4] + " " + str(highest_scores[5]), "utf-8")
+            )
+            return True
+        except ConnectionAbortedError:
+            print("The client closed the connection")
+            return False
 
 
 def handle(client):
-    send_high_score(client)
-    high_score(client)
+    while True:
+        if not send_high_score(client) or not high_score(client):
+            client.close()
+            break
 
 
 def receive():
