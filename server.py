@@ -13,13 +13,15 @@ server.listen()
 
 
 def recieve_high_score(client):
+    # Tries to revieve the highscore from the client
     try:
         initials = client.recv(1024).decode("utf-8").upper()
         score = client.recv(1024).decode("utf-8")
+    # If the client closed the connection the function returns False
     except ConnectionAbortedError:
         print("The client closed the connection")
         return False
-
+    # If the server recieved a score it writes it and the corresponding initials to the csv file
     if score:
         with open("high_scores.csv", "a", encoding="utf-8") as file:
             writer = csv.writer(file)
@@ -77,8 +79,10 @@ def send_high_score(client):
 
 
 def handle(client):
+    # Loops the function until one of them returns False indicating the the client closed the connection
     while True:
         if not send_high_score(client) or not recieve_high_score(client):
+            # Closes the connection with the client
             client.close()
             break
 
