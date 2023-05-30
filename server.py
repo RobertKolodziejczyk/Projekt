@@ -6,12 +6,13 @@ from time import sleep
 host = "192.168.10.178"
 port = 1345
 
+# Starts the server and listens for clients
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((host, port))
 server.listen()
 
 
-def high_score(client):
+def recieve_high_score(client):
     try:
         initials = client.recv(1024).decode("utf-8").upper()
         score = client.recv(1024).decode("utf-8")
@@ -77,7 +78,7 @@ def send_high_score(client):
 
 def handle(client):
     while True:
-        if not send_high_score(client) or not high_score(client):
+        if not send_high_score(client) or not recieve_high_score(client):
             client.close()
             break
 
