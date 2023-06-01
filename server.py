@@ -3,7 +3,7 @@ import threading
 import csv
 from time import sleep
 
-host = "192.168.10.178"
+host = ""
 port = 1345
 
 # Starts the server and listens for clients
