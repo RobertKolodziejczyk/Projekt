@@ -2,7 +2,7 @@ import random
 import socket
 from ursina import *
 
-host = "192.168.10.178"
+host = ""
 port = 1345
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
